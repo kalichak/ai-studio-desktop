@@ -1,0 +1,65 @@
+# -------------------------
+#  AMBIENTE PYTHON
+# -------------------------
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambiente virtual
+venv/
+.env/
+.env.bak/
+.venv/
+
+# Pacotes / builds / distribuições
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.log
+*.bak
+
+# Configurações locais ou sensíveis
+.env
+.env.*
+settings.local.py
+
+# VSCode / IDEs
+.vscode/
+.idea/
+*.iml
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos do pytest / coverage
+.cache/
+pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Jupyter (caso use notebooks)
+.ipynb_checkpoints/
+*.ipynb
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ferramentas de formatação/linters
+.mypy_cache/
+.pytest_cache/
+.pyre/
+.pytype/
+
+# Outros
+*.swp
+*.swo
