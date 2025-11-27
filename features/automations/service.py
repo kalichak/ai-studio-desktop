@@ -1,4 +1,4 @@
-"""Serviço de automações e orquestração de scripts."""
+"""Serviço de automações e orquestração de scripts. (INCONPLETO E SEM FUNÇÕES AINDA)"""
 import subprocess
 import os
 import asyncio
