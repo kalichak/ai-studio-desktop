@@ -54,6 +54,7 @@ Forneça:
 2. **3 Pontos Fortes** da arquitetura/código
 3. **3 Riscos ou Bugs Potenciais** a corrigir
 4. **Recomendações** de melhoria
+5. **README.md do projeto** sugerido
 
 Código do projeto:
 {content}

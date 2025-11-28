@@ -250,7 +250,14 @@ class App:
     # --- Utilities ---
 
     def _on_model_change(self, e):
+        """Atualiza modelo selecionado."""
         self.current_model = e.control.value
+        
+        # AVISA AO CLIENTE QUAL MODELO ESTÁ ATIVO PARA AJUSTAR LIMITES
+        self.gemini.set_current_model(self.current_model)
+        
+        # Força atualização visual do monitor imediatamente
+        self.api_monitor.update_stats()
 
     def _get_selected_model(self) -> str:
         return getattr(self, "current_model", None)
