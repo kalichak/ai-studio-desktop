@@ -180,50 +180,31 @@ class GeminiClient:
                 await self.rate_limiter.acquire()
                 self.tracker.log_request()
 
-                # Tenta usar generate_content com stream
+                # Gera conteúdo de forma síncrona e faz streaming linha por linha
                 response = self.client.models.generate_content(
                     model=model_name,
                     contents=prompt,
-                    stream=True,
-                    config=getattr(settings, "SAFETY_SETTINGS", {})
+                    config={"safety_settings": getattr(settings, "SAFETY_SETTINGS", {})}
                 )
 
-                # Se a resposta não for um iterator assíncrono, converte
-                if hasattr(response, '__aiter__'):
-                    async for chunk in response:
-                        if hasattr(chunk, 'text') and chunk.text:
-                            yield chunk.text
-                        if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
-                            try:
-                                self.tracker.log_tokens(
-                                    chunk.usage_metadata.prompt_token_count,
-                                    chunk.usage_metadata.candidates_token_count
-                                )
-                            except: pass
-                elif hasattr(response, '__iter__'):
-                    for chunk in response:
-                        # Executa em thread para não bloquear
-                        await asyncio.sleep(0)
-                        if hasattr(chunk, 'text') and chunk.text:
-                            yield chunk.text
-                        if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
-                            try:
-                                self.tracker.log_tokens(
-                                    chunk.usage_metadata.prompt_token_count,
-                                    chunk.usage_metadata.candidates_token_count
-                                )
-                            except: pass
-                else:
-                    # Resposta normal (não streaming)
-                    if hasattr(response, 'text'):
-                        yield response.text
-                    if hasattr(response, 'usage_metadata') and response.usage_metadata:
-                        try:
-                            self.tracker.log_tokens(
-                                response.usage_metadata.prompt_token_count,
-                                response.usage_metadata.candidates_token_count
-                            )
-                        except: pass
+                # Retorna o texto completo em chunks (simula streaming)
+                if hasattr(response, 'text') and response.text:
+                    text = response.text
+                    # Envia em chunks pequenos para simular streaming
+                    chunk_size = 50
+                    for i in range(0, len(text), chunk_size):
+                        chunk = text[i:i+chunk_size]
+                        yield chunk
+                        await asyncio.sleep(0.01)  # Pequeno delay para feedback visual
+
+                # Log de tokens se disponível
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    try:
+                        self.tracker.log_tokens(
+                            response.usage_metadata.prompt_token_count,
+                            response.usage_metadata.candidates_token_count
+                        )
+                    except: pass
 
                 return
 

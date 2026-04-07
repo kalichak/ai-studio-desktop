@@ -35,43 +35,43 @@ class ChatView:
     async def _send_message(self, e):
         """Envia mensagem e atualiza monitoramento em tempo real."""
         if not self.input_field.value.strip(): return
-        
+
         model = self.get_model_fn()
         if not model:
             self._show_error("Selecione um modelo primeiro.")
             return
-        
+
         user_msg = self.input_field.value
         self.input_field.value = ""
         self.input_field.disabled = True
         self.page.update()
-        
+
         self._add_message("user", user_msg)
         ai_bubble = self._add_message("assistant", "💭 Pensando...")
-        
+
         full_response = ""
-        
+
         try:
             # --- LOOP DE RESPOSTA ---
             async for chunk in self.service.send_message(user_msg, model):
                 full_response += chunk
                 ai_bubble.value = full_response
-                
+
                 # --- AQUI ESTÁ A CORREÇÃO MÁGICA ---
                 # Avisa a toda a aplicação que houve consumo de API
                 self.page.pubsub.send_all("api_update")
-                
+
                 self.page.update()
-            
+
             # Atualização final para garantir contagem de tokens do último chunk
             self.page.pubsub.send_all("api_update")
-            
+
         except Exception as ex:
             ai_bubble.value += f"\n❌ Erro: {ex}"
             self.page.update()
-        
+
         self.input_field.disabled = False
-        self.input_field.focus()
+        await self.input_field.focus()
         self.page.update()
     
     def _add_message(self, role: str, text: str):

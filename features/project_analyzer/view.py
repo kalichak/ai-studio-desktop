@@ -17,11 +17,6 @@ class ProjectAnalyzerView:
         # --- Componentes de Arquivo ---
         self.folder_path = ft.Text("Nenhuma pasta selecionada", italic=True)
         
-        # File Pickers
-        self.folder_picker = ft.FilePicker(on_result=self._on_folder_selected)
-        self.save_picker = ft.FilePicker(on_result=self._on_save_file)
-        self.page.overlay.extend([self.folder_picker, self.save_picker])
-        
         # --- Área de Resultado ---
         self.project_result = ft.Markdown(
             selectable=True, # Mantém selecionável, mas os botões ajudam
@@ -70,7 +65,7 @@ class ProjectAnalyzerView:
                     ft.ElevatedButton(
                         "Selecionar Pasta",
                         icon=ft.Icons.FOLDER,
-                        on_click=lambda _: self.folder_picker.get_directory_path()
+                        on_click=self._select_folder
                     ),
                     self.folder_path
                 ]),
@@ -101,7 +96,33 @@ class ProjectAnalyzerView:
         )
     
     # --- Lógica de Arquivos ---
-    
+
+    def _select_folder(self, e):
+        """Permite inserir caminho da pasta manualmente."""
+        dlg = ft.AlertDialog(
+            title=ft.Text("Selecionar Pasta"),
+            content=ft.Column([
+                ft.Text("Digite o caminho da pasta:", size=14),
+                ft.TextField(
+                    label="Caminho da pasta",
+                    hint_text="Ex: C:\\Users\\seu_usuario\\Documentos"
+                )
+            ]),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton("OK", on_click=lambda _: self._set_folder_path(dlg.content.controls[1].value) or setattr(dlg, 'open', False) or self.page.update())
+            ]
+        )
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+    def _set_folder_path(self, path: str):
+        """Define o caminho da pasta."""
+        if path:
+            self.folder_path.value = path
+            self.folder_path.update()
+
     def _on_folder_selected(self, e):
         """Callback de seleção de pasta."""
         if e.path:

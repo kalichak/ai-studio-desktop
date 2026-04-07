@@ -13,8 +13,7 @@ class DataRandomizerView:
         self.preview_data = ft.Text("", selectable=True)
         self.btn_randomize = ft.ElevatedButton("Randomizar", disabled=True, on_click=self._randomize)
 
-        self.file_picker = ft.FilePicker(on_result=self._file_selected)
-        self.page.overlay.append(self.file_picker)
+        self.loaded_df = None
 
         self.container = ft.Container(
             padding=20,
@@ -24,10 +23,7 @@ class DataRandomizerView:
                     ft.ElevatedButton(
                         "Selecionar Arquivo",
                         icon=ft.Icons.UPLOAD_FILE,
-                        on_click=lambda _: self.file_picker.pick_files(
-                            allow_multiple=False,
-                            allowed_extensions=["csv", "xlsx", "txt"]
-                        )
+                        on_click=self._select_file
                     ),
                     self.file_path_text
                 ]),
@@ -40,6 +36,45 @@ class DataRandomizerView:
         )
 
         self.loaded_df = None
+
+    def _select_file(self, e):
+        """Permite inserir caminho do arquivo manualmente."""
+        dlg = ft.AlertDialog(
+            title=ft.Text("Selecionar Arquivo"),
+            content=ft.Column([
+                ft.Text("Digite o caminho do arquivo:", size=14),
+                ft.TextField(
+                    label="Caminho do arquivo",
+                    hint_text="Ex: C:\\Users\\seu_usuario\\arquivo.csv"
+                )
+            ]),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton("OK", on_click=lambda _: self._load_from_path(dlg.content.controls[1].value) or setattr(dlg, 'open', False) or self.page.update())
+            ]
+        )
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+    def _load_from_path(self, file_path: str):
+        """Carrega arquivo do caminho fornecido."""
+        if not file_path:
+            return
+
+        self.file_path_text.value = file_path
+        self.file_path_text.update()
+
+        try:
+            df = self.service.load_document(file_path)
+            self.loaded_df = df
+            self.preview_data.value = df.head().to_string()
+            self.preview_data.update()
+            self.btn_randomize.disabled = False
+            self.btn_randomize.update()
+        except Exception as err:
+            self.preview_data.value = f"Erro: {err}"
+            self.preview_data.update()
 
     def _file_selected(self, e):
         if not e.files:

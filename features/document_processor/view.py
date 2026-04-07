@@ -13,8 +13,7 @@ class DocumentProcessorView:
         self._is_processing = False
         
         # File Picker
-        self.file_picker = ft.FilePicker(on_result=self._on_file_selected)
-        self.page.overlay.append(self.file_picker)
+        self.file_picker = None  # FilePicker removido do Flet 0.80
         
         # Componentes
         self._build_components()
@@ -91,9 +90,7 @@ class DocumentProcessorView:
                     ft.ElevatedButton(
                         "Carregar Arquivo",
                         icon=ft.Icons.UPLOAD_FILE,
-                        on_click=lambda _: self.file_picker.pick_files(
-                            allowed_extensions=["csv", "xlsx", "xls", "txt"]
-                        )
+                        on_click=self._select_file
                     ),
                     self.file_status,
                     ft.ElevatedButton(
@@ -167,7 +164,49 @@ class DocumentProcessorView:
             ]),
             expand=True
         )
-    
+
+    def _select_file(self, e):
+        """Permite inserir caminho do arquivo manualmente."""
+        dlg = ft.AlertDialog(
+            title=ft.Text("Carregar Arquivo"),
+            content=ft.Column([
+                ft.Text("Digite o caminho do arquivo:", size=14),
+                ft.TextField(
+                    label="Caminho do arquivo",
+                    hint_text="Ex: C:\\Users\\seu_usuario\\arquivo.csv"
+                )
+            ]),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton("OK", on_click=lambda _: self._load_document_from_path(dlg.content.controls[1].value) or setattr(dlg, 'open', False) or self.page.update())
+            ]
+        )
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+    def _load_document_from_path(self, file_path: str):
+        """Carrega documento do caminho fornecido."""
+        if not file_path:
+            return
+
+        try:
+            success, message, df = self.service.load_file(file_path)
+
+            if success:
+                self.file_status.value = message
+                self.file_status.color = ft.Colors.GREEN
+                self._update_preview(df)
+                self._update_column_analysis()
+            else:
+                self.file_status.value = f"Erro: {message}"
+                self.file_status.color = ft.Colors.RED
+        except Exception as ex:
+            self.file_status.value = f"Erro ao carregar: {ex}"
+            self.file_status.color = ft.Colors.RED
+
+        self.page.update()
+
     def _on_file_selected(self, e):
         """Callback de seleção de arquivo."""
         if not e.files or len(e.files) == 0:

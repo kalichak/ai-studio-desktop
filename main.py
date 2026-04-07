@@ -125,16 +125,14 @@ class App:
             password=True,
             width=300,
             value=getattr(settings, "GEMINI_API_KEY", ""),
-            hint_text="Cole sua chave aqui",
-            text_size=12
+            hint_text="Cole sua chave aqui"
         )
 
         self.model_dropdown = ft.Dropdown(
             label="Modelo",
             width=250,
             hint_text="Carregue a chave primeiro",
-            on_change=self._on_model_change,
-            text_size=12
+            on_select=self._on_model_change
         )
 
         self.status_text = ft.Text("", size=12)
@@ -242,7 +240,7 @@ class App:
     def _placeholder_container(self, text: str):
         return ft.Container(
             content=ft.Text(text, italic=True),
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             padding=20,
             visible=False,
             expand=True

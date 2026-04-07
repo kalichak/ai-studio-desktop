@@ -12,11 +12,7 @@ class AutomationsView:
         self.get_model_fn = get_model_fn
         self._is_processing = False
         self._current_task = None
-        
-        # File picker para scripts
-        self.script_picker = ft.FilePicker(on_result=self._on_script_selected)
-        self.page.overlay.append(self.script_picker)
-        
+
         # Componentes
         self._build_components()
         
@@ -273,21 +269,13 @@ class AutomationsView:
             self.page.update()
             self._load_automations()
             self._show_success(f"✅ Script '{name_field.value}' adicionado")
-        
-        def select_file(e):
-            self.script_picker.pick_files(
-                dialog_title="Selecione o executável/script"
-            )
-        
+
         dlg = ft.AlertDialog(
             title=ft.Text("Adicionar Script/App"),
             content=ft.Column([
                 name_field,
                 desc_field,
-                ft.Row([
-                    path_field,
-                    ft.IconButton(ft.Icons.FOLDER, on_click=select_file)
-                ])
+                path_field
             ], tight=True, spacing=15),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
@@ -300,8 +288,7 @@ class AutomationsView:
         self.page.update()
     
     def _on_script_selected(self, e):
-        """Callback de seleção de script."""
-        # TODO: Implementar quando necessário
+        """Callback de seleção de script - não utilizado."""
         pass
     
     def _show_manage_scripts(self, e):
