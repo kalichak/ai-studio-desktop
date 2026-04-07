@@ -68,20 +68,20 @@ def check_and_report():
     existing_files = []
     
     for category, files in required_files.items():
-        print(f"\n📁 {category}")
+        print(f"\n {category}")
         for file in files:
             if os.path.exists(file):
-                print(f"  ✅ {file}")
+                print(f"{file}")
                 existing_files.append(file)
             else:
-                print(f"  ❌ {file} - FALTANDO")
+                print(f"{file} - FALTANDO")
                 missing_files.append(file)
     
     # Resumo
     print("\n" + "="*60)
-    print(f"📊 Resumo:")
-    print(f"  ✅ Existem: {len(existing_files)} arquivos")
-    print(f"  ❌ Faltam: {len(missing_files)} arquivos")
+    print(f"Resumo:")
+    print(f"Existem: {len(existing_files)} arquivos")
+    print(f"Faltam: {len(missing_files)} arquivos")
     print("="*60)
     
     return missing_files
@@ -121,19 +121,19 @@ def show_instructions(missing_files):
     
     for file in code_files:
         instruction = file_instructions.get(file, "Veja os artifacts fornecidos")
-        print(f"\n❌ {file}")
-        print(f"   📌 {instruction}")
+        print(f"\n {file}")
+        print(f"{instruction}")
 
 def main():
     print("="*60)
-    print("🛠️  Fix Structure - Correção Automática")
+    print("Fix Structure - Correção Automática")
     print("="*60)
     
     # Verifica estrutura
     missing_files = check_and_report()
     
     if not missing_files:
-        print("\n✅ Estrutura completa! Tudo OK.")
+        print("\nEstrutura completa! Tudo OK.")
         return
     
     # Cria __init__.py
@@ -146,12 +146,12 @@ def main():
     show_instructions(remaining)
     
     print("\n" + "="*60)
-    print("✅ Arquivos __init__.py criados automaticamente!")
-    print("📝 Copie o conteúdo dos artifacts para os arquivos listados acima")
+    print("Arquivos __init__.py criados automaticamente!")
+    print("Copie o conteúdo dos artifacts para os arquivos listados acima")
     print("="*60)
     
     # Comandos úteis
-    print("\n💡 Comandos úteis:")
+    print("\nComandos úteis:")
     print("  python fix_structure.py    # Executar novamente para verificar")
     print("  python main.py             # Executar aplicação")
     print()

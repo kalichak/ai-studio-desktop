@@ -41,7 +41,7 @@ class DataRandomizerView:
 
         self.loaded_df = None
 
-    def _file_selected(self, e: ft.FilePickerResultEvent):
+    def _file_selected(self, e):
         if not e.files:
             return
 

@@ -1,9 +1,11 @@
 """
-main.py - AI Studio Desktop (Layout Corrigido)
+main.py - AI Studio Desktop 
 """
 
 import flet as ft
 import traceback
+from google import genai
+
 from config.settings import settings
 from core.gemini_client import GeminiClient
 
@@ -15,6 +17,7 @@ try:
     from features.automations.service import AutomationsService
 except ImportError as e:
     print(f"Erro de importação nos serviços: {e}")
+
 
 # Views
 try:
@@ -46,10 +49,8 @@ class App:
 
         # --- Monitor de API ---
         self.api_monitor = APIStatusIndicator(self.gemini)
-
         # --- Services ---
         self._init_services()
-
         # --- UI: Config section ---
         self._build_config_bar()
 
@@ -290,8 +291,7 @@ class App:
 
         try:
             self.gemini.api_key = key
-            import google.generativeai as genai
-            genai.configure(api_key=key)
+            self.gemini.client = genai.Client(api_key=key)
         except Exception as e:
             print(f"Erro config key: {e}")
 
@@ -323,4 +323,4 @@ async def main(page: ft.Page):
         page.update()
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.run(main)

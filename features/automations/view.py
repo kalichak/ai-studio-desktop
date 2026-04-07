@@ -299,7 +299,7 @@ class AutomationsView:
         dlg.open = True
         self.page.update()
     
-    def _on_script_selected(self, e: ft.FilePickerResultEvent):
+    def _on_script_selected(self, e):
         """Callback de seleção de script."""
         # TODO: Implementar quando necessário
         pass

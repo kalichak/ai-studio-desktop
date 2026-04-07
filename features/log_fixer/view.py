@@ -19,6 +19,7 @@ class LogFixerView:
             label="Cole o log de erro aqui",
             multiline=True,
             min_lines=5,
+            max_lines=15,
             hint_text="Exemplo: Traceback (most recent call last):\n  File 'app.py', line 42..."
         )
         
@@ -85,7 +86,7 @@ class LogFixerView:
         
         # Prepara UI
         self._set_processing_state(True)
-        self.log_result.value = "🔍 Analisando erro..."
+        self.log_result.value = " Analisando erro..."
         self.page.update()
         
         try:
@@ -96,11 +97,11 @@ class LogFixerView:
             await self._current_task
         
         except asyncio.CancelledError:
-            self.log_result.value += "\n\n⚠️ **Análise cancelada pelo usuário**"
+            self.log_result.value += "\n\n **Análise cancelada pelo usuário**"
             self.page.update()
         
         except Exception as e:
-            self.log_result.value = f"❌ **Erro durante análise:** {str(e)}\n\nTente novamente."
+            self.log_result.value = f" **Erro durante análise:** {str(e)}\n\nTente novamente."
             self.page.update()
         
         finally:

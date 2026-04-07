@@ -46,7 +46,7 @@ def create_result_container(content: ft.Control) -> ft.Container:
     """Container para exibição de resultados."""
     return ft.Container(
         content=ft.Column([content], scroll=ft.ScrollMode.ALWAYS),
-        expand=True,
+        expand=False,
         border=ft.border.all(1, ft.Colors.GREY_800),
         border_radius=5,
         padding=10

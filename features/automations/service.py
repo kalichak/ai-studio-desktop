@@ -1,4 +1,4 @@
-"""Serviço de automações e orquestração de scripts. (INCONPLETO E SEM FUNÇÕES AINDA)"""
+"""Serviço de automações e orquestração de scripts. (INCOMPLETO E SEM FUNÇÕES AINDA)"""
 import subprocess
 import os
 import asyncio
@@ -95,20 +95,20 @@ class AutomationsService:
     async def run_automation(self, automation_type: str, code: str, model_name: str):
         """
         Executa automação selecionada.
-        
+
         Args:
             automation_type: Tipo de automação (ex: "generate_tests")
             code: Código fonte para processar
             model_name: Modelo Gemini a usar
-        
+
         Yields:
             str: Resultado em streaming
         """
-        if automation_type not in self.automations:
+        if automation_type not in self.ai_automations:
             yield f"❌ Automação '{automation_type}' não encontrada."
             return
-        
-        automation_fn = self.automations[automation_type]
+
+        automation_fn = self.ai_automations[automation_type]["handler"]
         async for chunk in automation_fn(code, model_name):
             yield chunk
     

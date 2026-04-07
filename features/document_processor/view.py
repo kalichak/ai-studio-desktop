@@ -43,9 +43,9 @@ class DocumentProcessorView:
         self.data_table = ft.DataTable(
             columns=[],
             rows=[],
-            border=ft.border.all(1, ft.Colors.GREY_800),
+            border=ft.border.all(1, ft.Colors.GREY_400),
             border_radius=5,
-            horizontal_lines=ft.BorderSide(1, ft.Colors.GREY_700)
+            horizontal_lines=ft.BorderSide(1, ft.Colors.GREY_400)
         )
         
         # Análise de colunas
@@ -105,7 +105,7 @@ class DocumentProcessorView:
                 ], spacing=15)
             ]),
             padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_800),
+            border=ft.border.all(1, ft.Colors.GREY_400),
             border_radius=10
         )
     
@@ -116,7 +116,7 @@ class DocumentProcessorView:
                 ft.Text("📊 Análise de Colunas", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=self.columns_list,
-                    border=ft.border.all(1, ft.Colors.GREY_800),
+                    border=ft.border.all(1, ft.Colors.GREY_400),
                     border_radius=5,
                     padding=10,
                     height=200
@@ -143,7 +143,7 @@ class DocumentProcessorView:
                 ),
                 ft.Container(
                     content=ft.Column([self.ai_result], scroll=ft.ScrollMode.AUTO),
-                    border=ft.border.all(1, ft.Colors.GREY_800),
+                    border=ft.border.all(1, ft.Colors.GREY_400),
                     border_radius=5,
                     padding=10,
                     height=150
@@ -156,10 +156,10 @@ class DocumentProcessorView:
         """Painel direito - Preview dos dados."""
         return ft.Container(
             content=ft.Column([
-                ft.Text("📄 Preview dos Dados", size=16, weight=ft.FontWeight.BOLD),
+                ft.Text("Preview dos Dados", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=ft.Column([self.data_table], scroll=ft.ScrollMode.ALWAYS),
-                    border=ft.border.all(1, ft.Colors.GREY_800),
+                    border=ft.border.all(1, ft.Colors.GREY_400),
                     border_radius=5,
                     padding=10,
                     expand=True
@@ -168,7 +168,7 @@ class DocumentProcessorView:
             expand=True
         )
     
-    def _on_file_selected(self, e: ft.FilePickerResultEvent):
+    def _on_file_selected(self, e):
         """Callback de seleção de arquivo."""
         if not e.files or len(e.files) == 0:
             return
@@ -233,13 +233,13 @@ class DocumentProcessorView:
                         ft.Text(col, weight=ft.FontWeight.BOLD, size=14)
                     ]),
                     ft.Text(f"Tipo: {tipo}", size=12),
-                    ft.Text(f"Únicos: {unicos} | Nulos: {nulos}", size=11, color=ft.Colors.GREY_500),
+                    ft.Text(f"Únicos: {unicos} | Nulos: {nulos}", size=11, color=ft.Colors.GREY_400),
                     ft.Text(f"Amostra: {', '.join(info['amostra'][:2])}", size=10, italic=True)
                 ], spacing=3),
                 padding=8,
-                border=ft.border.all(1, ft.Colors.GREY_800),
+                border=ft.border.all(1, ft.Colors.GREY_400),
                 border_radius=5,
-                bgcolor=ft.Colors.GREY_900
+                bgcolor=ft.Colors.GREY_400
             )
             
             self.columns_list.controls.append(card)
@@ -275,7 +275,7 @@ class DocumentProcessorView:
         try:
             filtered_df = self.service.filter_data(column, value, operation)
             self._update_preview(filtered_df)
-            self._show_success(f"✅ Filtro aplicado: {len(filtered_df)} linhas")
+            self._show_success(f"Filtro aplicado: {len(filtered_df)} linhas")
         except Exception as ex:
             self._show_error(f"Erro ao filtrar: {str(ex)}")
     
@@ -294,7 +294,7 @@ class DocumentProcessorView:
             self._show_error("Selecione um modelo")
             return
         
-        self.ai_result.value = "🤔 Analisando..."
+        self.ai_result.value = "Analisando..."
         self.page.update()
         
         full_response = ""
@@ -304,7 +304,7 @@ class DocumentProcessorView:
                 self.ai_result.value = full_response
                 self.page.update()
         except Exception as ex:
-            self.ai_result.value = f"❌ Erro: {str(ex)}"
+            self.ai_result.value = f" Erro: {str(ex)}"
             self.page.update()
     
     def _export_data(self, e):
@@ -314,7 +314,7 @@ class DocumentProcessorView:
             return
         
         # TODO: Implementar dialog de salvamento
-        self._show_success("🚧 Função de exportação em desenvolvimento")
+        self._show_success(" Função de exportação em desenvolvimento")
     
     def _show_error(self, msg: str):
         """Exibe erro."""

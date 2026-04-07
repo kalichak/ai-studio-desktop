@@ -3,10 +3,10 @@ import asyncio
 import time
 import random
 from collections import deque
-import google.generativeai as genai
+from google import genai
 from config.settings import settings
 
-# --- TABELA DE LIMITES (BASEADO NO SEU PRINT - PLANO GRATUITO) ---
+# --- TABELA DE LIMITES ---
 MODEL_LIMITS = {
     "gemini-2.0-flash":      {"rpm": 15, "tpm": 1_000_000, "rpd": 1500},
     "gemini-2.0-flash-lite": {"rpm": 30, "tpm": 1_000_000, "rpd": 1500},
@@ -118,9 +118,10 @@ class GeminiClient:
         self.rate_limiter = _SHARED_RATE_LIMITER
         self.tracker = _USAGE_TRACKER
         self.current_model_name = "gemini-2.0-flash" # Padrão
-        
+        self.client = None
+
         if self.api_key:
-            genai.configure(api_key=self.api_key)
+            self.client = genai.Client(api_key=self.api_key)
     
     def get_usage_stats(self):
         """Retorna estatísticas detalhadas baseadas no modelo atual."""
@@ -131,14 +132,23 @@ class GeminiClient:
         self.current_model_name = model_name
 
     def get_available_models(self):
-        if not self.api_key: return [], "Chave API vazia."
+        if not self.api_key or not self.client:
+            return [], "Chave API vazia."
         try:
-            all_models = list(genai.list_models())
-            text_models = [m for m in all_models if 'generateContent' in m.supported_generation_methods]
-            options = []
-            for m in text_models:
-                clean = m.name.replace("models/", "")
-                options.append({"key": m.name, "text": clean})
+            # Lista de modelos conhecidos que funcionam com a API
+            known_models = [
+                "models/gemini-2.0-flash",
+                "models/gemini-2.0-flash-lite",
+                "models/gemini-1.5-pro",
+                "models/gemini-1.5-flash",
+            ]
+            # Tenta listar modelos da API, mas com fallback para lista conhecida
+            try:
+                all_models = list(self.client.models.list())
+                options = [{"key": m.name, "text": m.name.replace("models/", "")} for m in all_models]
+            except:
+                options = [{"key": m, "text": m.replace("models/", "")} for m in known_models]
+
             return (options, f"{len(options)} modelos.") if options else ([], "Nenhum modelo.")
         except Exception as e:
             return [], f"Erro: {str(e)}"
@@ -147,10 +157,14 @@ class GeminiClient:
         if not model_name:
             yield "❌ Nenhum modelo selecionado."
             return
-        
+
+        if not self.client:
+            yield "❌ Cliente não inicializado. Configure uma chave API."
+            return
+
         # Atualiza o modelo atual para o tracker saber os limites
         self.current_model_name = model_name
-        
+
         if not model_name.startswith("models/"):
             model_name = f"models/{model_name}"
 
@@ -160,32 +174,61 @@ class GeminiClient:
 
         max_retries = 3
         current_try = 0
-        
+
         while current_try <= max_retries:
             try:
                 await self.rate_limiter.acquire()
                 self.tracker.log_request()
-                
-                model = genai.GenerativeModel(model_name, safety_settings=getattr(settings, "SAFETY_SETTINGS", {}))
-                
-                response = await asyncio.wait_for(
-                    model.generate_content_async(prompt, stream=True),
-                    timeout=timeout
+
+                # Tenta usar generate_content com stream
+                response = self.client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    stream=True,
+                    config=getattr(settings, "SAFETY_SETTINGS", {})
                 )
-                
-                async for chunk in response:
-                    if chunk.text: yield chunk.text
-                    if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
+
+                # Se a resposta não for um iterator assíncrono, converte
+                if hasattr(response, '__aiter__'):
+                    async for chunk in response:
+                        if hasattr(chunk, 'text') and chunk.text:
+                            yield chunk.text
+                        if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
+                            try:
+                                self.tracker.log_tokens(
+                                    chunk.usage_metadata.prompt_token_count,
+                                    chunk.usage_metadata.candidates_token_count
+                                )
+                            except: pass
+                elif hasattr(response, '__iter__'):
+                    for chunk in response:
+                        # Executa em thread para não bloquear
+                        await asyncio.sleep(0)
+                        if hasattr(chunk, 'text') and chunk.text:
+                            yield chunk.text
+                        if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
+                            try:
+                                self.tracker.log_tokens(
+                                    chunk.usage_metadata.prompt_token_count,
+                                    chunk.usage_metadata.candidates_token_count
+                                )
+                            except: pass
+                else:
+                    # Resposta normal (não streaming)
+                    if hasattr(response, 'text'):
+                        yield response.text
+                    if hasattr(response, 'usage_metadata') and response.usage_metadata:
                         try:
                             self.tracker.log_tokens(
-                                chunk.usage_metadata.prompt_token_count, 
-                                chunk.usage_metadata.candidates_token_count
+                                response.usage_metadata.prompt_token_count,
+                                response.usage_metadata.candidates_token_count
                             )
                         except: pass
-                return 
+
+                return
 
             except asyncio.CancelledError:
-                yield "⚠️ Cancelado."
+                yield "Cancelado."
                 return
             except Exception as e:
                 self.tracker.log_error()
@@ -196,7 +239,7 @@ class GeminiClient:
                         await asyncio.sleep(2 ** current_try)
                         yield f"\n⏳ Retry {current_try}...\n"
                         continue
-                yield f"❌ Erro: {str(e)}"
+                yield f"Erro: {str(e)}"
                 return
 
     def cancel_current_operation(self):

@@ -102,13 +102,13 @@ class ProjectAnalyzerView:
     
     # --- Lógica de Arquivos ---
     
-    def _on_folder_selected(self, e: ft.FilePickerResultEvent):
+    def _on_folder_selected(self, e):
         """Callback de seleção de pasta."""
         if e.path:
             self.folder_path.value = e.path
             self.folder_path.update()
 
-    def _on_save_file(self, e: ft.FilePickerResultEvent):
+    def _on_save_file(self, e):
         """Salva o conteúdo do markdown em um arquivo."""
         if e.path:
             try:
@@ -150,11 +150,11 @@ class ProjectAnalyzerView:
             await self._current_task
         
         except asyncio.CancelledError:
-            self.project_result.value += "\n\n⚠️ **Análise cancelada pelo usuário**"
+            self.project_result.value += "\n\n **Análise cancelada pelo usuário**"
             self.page.update()
         
         except Exception as e:
-            self.project_result.value = f"❌ **Erro durante análise:** {str(e)}\n\nTente novamente."
+            self.project_result.value = f"**Erro durante análise:** {str(e)}\n\nTente novamente."
             self.page.update()
         
         finally:
@@ -192,14 +192,14 @@ class ProjectAnalyzerView:
         except asyncio.CancelledError:
             raise
         except Exception as e:
-            self.project_result.value = full_response + f"\n\n❌ Erro: {str(e)}"
+            self.project_result.value = full_response + f"\n\nErro: {str(e)}"
             self.page.update()
     
     async def _cancel_analysis(self, e):
         if self._current_task and not self._current_task.done():
             self._current_task.cancel()
             self.service.client.cancel_current_operation()
-            self._show_success("⏹️ Análise cancelada")
+            self._show_success("Análise cancelada")
     
     def _set_processing_state(self, is_processing: bool):
         self._is_processing = is_processing
