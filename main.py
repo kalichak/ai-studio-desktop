@@ -1,5 +1,5 @@
 """
-main.py - AI Studio Desktop 
+main.py - AI Studio Desktop
 """
 
 import flet as ft
@@ -8,6 +8,7 @@ from google import genai
 
 from config.settings import settings
 from core.gemini_client import GeminiClient
+from core.knowledge_manager import KnowledgeManager
 
 # Services
 try:
@@ -39,6 +40,9 @@ class App:
     def __init__(self, page: ft.Page):
         self.page = page
         self._setup_page()
+
+        # --- Knowledge Manager ---
+        self.knowledge_mgr = KnowledgeManager()
 
         # --- Core client (Gemini) ---
         try:
@@ -137,14 +141,30 @@ class App:
 
         self.status_text = ft.Text("", size=12)
 
+        # Barra de configuração superior com botões
         self.config_bar = ft.Container(
-            content=ft.Row([
-                self.api_key_field,
-                ft.IconButton(ft.Icons.REFRESH, on_click=lambda _: self._load_models(), tooltip="Recarregar Modelos"),
-                self.model_dropdown,
-                ft.VerticalDivider(),
-                self.status_text
-            ], alignment=ft.MainAxisAlignment.START, spacing=12),
+            content=ft.Column([
+                # Linha 1: API Key, Modelo, Status com botões
+                ft.Row([
+                    self.api_key_field,
+                    ft.IconButton(ft.Icons.REFRESH, on_click=lambda _: self._load_models(), tooltip="Recarregar Modelos"),
+                    self.model_dropdown,
+                    ft.VerticalDivider(),
+                    self.status_text,
+                    ft.Container(expand=True),  # Spacer dinâmico
+                    # Novos botões
+                    ft.IconButton(
+                        ft.Icons.SETTINGS,
+                        on_click=self._show_settings_dialog,
+                        tooltip="Configurações e Conhecimentos"
+                    ),
+                    ft.IconButton(
+                        ft.Icons.RESTART_ALT,
+                        on_click=self._reset_app,
+                        tooltip="Resetar App (Limpa instâncias e cache)"
+                    ),
+                ], alignment=ft.MainAxisAlignment.START, spacing=12),
+            ], spacing=10),
             padding=10,
             bgcolor=ft.Colors.BLACK12
         )
@@ -300,14 +320,164 @@ class App:
                 first_key = options[0]["key"]
                 self.model_dropdown.value = first_key
                 self.current_model = first_key
-                self._update_status(f"✅ {len(options)} modelos", ft.Colors.GREEN)
+                self._update_status(f"{len(options)} modelos", ft.Colors.GREEN)
             else:
-                self._update_status(f"❌ {msg}", ft.Colors.RED)
+                self._update_status(f"{msg}", ft.Colors.RED)
         except Exception as e:
             self._update_status(f"Erro: {str(e)}", ft.Colors.RED)
         finally:
             self.model_dropdown.update()
             self.page.update()
+
+    def _reset_app(self, e):
+        """Reseta a aplicação - limpa instâncias, cache e conhecimentos."""
+        dlg = ft.AlertDialog(
+            title=ft.Text("⚠️ Resetar Aplicação"),
+            content=ft.Text(
+                "Isto irá:\n"
+                "• Limpar todos os conhecimentos\n"
+                "• Resetar prompts customizados\n"
+                "• Recarregar a aplicação\n\n"
+                "Tem certeza?"
+            ),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda _: self._close_dialog(dlg)),
+                ft.TextButton(
+                    "Resetar",
+                    on_click=lambda _: self._do_reset(dlg),
+                    style=ft.ButtonStyle(color=ft.Colors.RED)
+                ),
+            ]
+        )
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+    def _do_reset(self, dlg):
+        """Executa o reset."""
+        try:
+            # Reseta knowledge manager
+            self.knowledge_mgr.reset()
+            dlg.open = False
+
+            # Mostra notificação
+            snack = ft.SnackBar(
+                ft.Text("✅ App resetado com sucesso! Recarregando..."),
+                bgcolor=ft.Colors.GREEN
+            )
+            self.page.snack_bar = snack
+            snack.open = True
+            self.page.update()
+
+            # Aguarda e recarrega
+            import asyncio
+            async def reload():
+                await asyncio.sleep(1)
+                # Limpa toda a interface e reconstrói
+                self.page.clean()
+                App(self.page)
+
+            asyncio.create_task(reload())
+        except Exception as ex:
+            print(f"❌ Erro ao resetar: {ex}")
+            snack = ft.SnackBar(
+                ft.Text(f"❌ Erro ao resetar: {ex}"),
+                bgcolor=ft.Colors.RED
+            )
+            self.page.snack_bar = snack
+            snack.open = True
+            self.page.update()
+
+    def _close_dialog(self, dlg):
+        """Fecha dialog."""
+        dlg.open = False
+        self.page.update()
+
+    def _show_settings_dialog(self, e):
+        """Mostra dialog simples de gerenciamento de conhecimentos."""
+        knowledge_items = []
+
+        # Popula lista de conhecimentos
+        for category, items in self.knowledge_mgr.list_knowledge().items():
+            for i, item in enumerate(items):
+                knowledge_items.append(
+                    ft.ListTile(
+                        title=ft.Text(f"[{category}] {item['title']}"),
+                        subtitle=ft.Text(item['content'][:60] + "..."),
+                        trailing=ft.IconButton(
+                            ft.Icons.DELETE,
+                            on_click=lambda _, cat=category, idx=i: self._delete_knowledge(cat, idx)
+                        )
+                    )
+                )
+
+        # Seção para adicionar novo conhecimento
+        new_title = ft.TextField(label="Título", expand=True)
+        new_content = ft.TextField(label="Conteúdo", multiline=True, min_lines=3, expand=True)
+        new_category = ft.Dropdown(
+            label="Categoria",
+            value="geral",
+            options=[
+                ft.dropdown.Option("geral"),
+                ft.dropdown.Option("projeto"),
+                ft.dropdown.Option("dados"),
+                ft.dropdown.Option("automacao"),
+            ]
+        )
+
+        def add_knowledge(_):
+            if new_title.value and new_content.value:
+                self.knowledge_mgr.add_knowledge(
+                    new_title.value,
+                    new_content.value,
+                    new_category.value or "geral"
+                )
+                new_title.value = ""
+                new_content.value = ""
+                dlg.open = False
+                self.page.update()
+                self._show_success_snack("✅ Conhecimento adicionado!")
+
+        dlg = ft.AlertDialog(
+            title=ft.Text("⚙️ Conhecimentos Anexados"),
+            content=ft.Column([
+                ft.Text("Seus conhecimentos:", weight="bold", size=14),
+                ft.Container(
+                    content=ft.ListView(
+                        controls=knowledge_items if knowledge_items else [ft.Text("Nenhum conhecimento ainda")],
+                        expand=True,
+                        spacing=5
+                    ),
+                    height=250,
+                    border=ft.Border.all(1, ft.Colors.GREY_700)
+                ),
+                ft.Divider(),
+                ft.Text("Adicionar novo:", weight="bold", size=14),
+                new_title,
+                new_category,
+                new_content,
+            ], expand=True, scroll=ft.ScrollMode.AUTO),
+            actions=[
+                ft.TextButton("Adicionar", on_click=add_knowledge),
+                ft.TextButton("Fechar", on_click=lambda _: self._close_dialog(dlg)),
+            ]
+        )
+        self.page.dialog = dlg
+        dlg.open = True
+        self.page.update()
+
+    def _delete_knowledge(self, category: str, index: int):
+        """Deleta um conhecimento."""
+        self.knowledge_mgr.remove_knowledge(category, index)
+        self.page.update()
+        self._show_success_snack(f"✅ Conhecimento removido!")
+
+    def _show_success_snack(self, msg: str):
+        """Mostra notificação de sucesso."""
+        snack = ft.SnackBar(ft.Text(msg), bgcolor=ft.Colors.GREEN)
+        self.page.snack_bar = snack
+        snack.open = True
+        self.page.update()
 
 
 async def main(page: ft.Page):

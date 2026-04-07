@@ -2,6 +2,7 @@
 import flet as ft
 import asyncio
 from features.document_processor.service import DocumentProcessorService
+from utils.file_picker import select_file
 
 class DocumentProcessorView:
     """View de processamento de documentos CSV/Excel."""
@@ -42,7 +43,7 @@ class DocumentProcessorView:
         self.data_table = ft.DataTable(
             columns=[],
             rows=[],
-            border=ft.border.all(1, ft.Colors.GREY_400),
+            border=ft.Border.all(1, ft.Colors.GREY_400),
             border_radius=5,
             horizontal_lines=ft.BorderSide(1, ft.Colors.GREY_400)
         )
@@ -102,7 +103,7 @@ class DocumentProcessorView:
                 ], spacing=15)
             ]),
             padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_400),
+            border=ft.Border.all(1, ft.Colors.GREY_400),
             border_radius=10
         )
     
@@ -113,7 +114,7 @@ class DocumentProcessorView:
                 ft.Text("📊 Análise de Colunas", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=self.columns_list,
-                    border=ft.border.all(1, ft.Colors.GREY_400),
+                    border=ft.Border.all(1, ft.Colors.GREY_400),
                     border_radius=5,
                     padding=10,
                     height=200
@@ -140,7 +141,7 @@ class DocumentProcessorView:
                 ),
                 ft.Container(
                     content=ft.Column([self.ai_result], scroll=ft.ScrollMode.AUTO),
-                    border=ft.border.all(1, ft.Colors.GREY_400),
+                    border=ft.Border.all(1, ft.Colors.GREY_400),
                     border_radius=5,
                     padding=10,
                     height=150
@@ -156,7 +157,7 @@ class DocumentProcessorView:
                 ft.Text("Preview dos Dados", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=ft.Column([self.data_table], scroll=ft.ScrollMode.ALWAYS),
-                    border=ft.border.all(1, ft.Colors.GREY_400),
+                    border=ft.Border.all(1, ft.Colors.GREY_400),
                     border_radius=5,
                     padding=10,
                     expand=True
@@ -166,68 +167,29 @@ class DocumentProcessorView:
         )
 
     def _select_file(self, e):
-        """Permite inserir caminho do arquivo manualmente."""
-        dlg = ft.AlertDialog(
-            title=ft.Text("Carregar Arquivo"),
-            content=ft.Column([
-                ft.Text("Digite o caminho do arquivo:", size=14),
-                ft.TextField(
-                    label="Caminho do arquivo",
-                    hint_text="Ex: C:\\Users\\seu_usuario\\arquivo.csv"
-                )
-            ]),
-            actions=[
-                ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
-                ft.TextButton("OK", on_click=lambda _: self._load_document_from_path(dlg.content.controls[1].value) or setattr(dlg, 'open', False) or self.page.update())
-            ]
-        )
-        self.page.dialog = dlg
-        dlg.open = True
-        self.page.update()
-
-    def _load_document_from_path(self, file_path: str):
-        """Carrega documento do caminho fornecido."""
-        if not file_path:
-            return
-
+        """Abre seletor nativo de arquivo do Windows."""
         try:
-            success, message, df = self.service.load_file(file_path)
-
-            if success:
-                self.file_status.value = message
-                self.file_status.color = ft.Colors.GREEN
-                self._update_preview(df)
-                self._update_column_analysis()
+            file_path = select_file(
+                "Selecionar Arquivo",
+                filetypes=[
+                    ("Arquivos de Dados", "*.csv *.xlsx *.xls *.txt"),
+                    ("CSV files", "*.csv"),
+                    ("Excel files", "*.xlsx *.xls"),
+                    ("Text files", "*.txt"),
+                    ("All files", "*.*")
+                ]
+            )
+            if file_path:
+                self._load_document_from_path(file_path)
+                print(f"✅ Arquivo selecionado: {file_path}")
             else:
-                self.file_status.value = f"Erro: {message}"
-                self.file_status.color = ft.Colors.RED
+                print("ℹ️ Nenhum arquivo selecionado")
         except Exception as ex:
-            self.file_status.value = f"Erro ao carregar: {ex}"
-            self.file_status.color = ft.Colors.RED
+            print(f"❌ Erro: {ex}")
+            import traceback
+            traceback.print_exc()
 
-        self.page.update()
 
-    def _on_file_selected(self, e):
-        """Callback de seleção de arquivo."""
-        if not e.files or len(e.files) == 0:
-            return
-        
-        file_path = e.files[0].path
-        success, message, df = self.service.load_file(file_path)
-        
-        if success:
-            self.file_status.value = message
-            self.file_status.color = ft.Colors.GREEN
-            self._update_preview(df)
-            self._update_column_analysis()
-            self._show_success(message)
-        else:
-            self.file_status.value = message
-            self.file_status.color = ft.Colors.RED
-            self._show_error(message)
-        
-        self.page.update()
-    
     def _update_preview(self, df):
         """Atualiza preview da tabela."""
         # Limita a 10 linhas e 10 colunas para performance
@@ -276,7 +238,7 @@ class DocumentProcessorView:
                     ft.Text(f"Amostra: {', '.join(info['amostra'][:2])}", size=10, italic=True)
                 ], spacing=3),
                 padding=8,
-                border=ft.border.all(1, ft.Colors.GREY_400),
+                border=ft.Border.all(1, ft.Colors.GREY_400),
                 border_radius=5,
                 bgcolor=ft.Colors.GREY_400
             )

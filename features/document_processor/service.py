@@ -3,6 +3,7 @@ import pandas as pd
 import io
 from typing import Dict, List, Any, Tuple
 from core.gemini_client import GeminiClient
+from utils.file_utils import detect_encoding
 
 class DocumentProcessorService:
     """Processa e analisa documentos estruturados."""
@@ -14,39 +15,34 @@ class DocumentProcessorService:
     
     def load_file(self, file_path: str) -> Tuple[bool, str, pd.DataFrame]:
         """
-        Carrega arquivo CSV, Excel ou TXT.
-        
+        Carrega arquivo CSV, Excel ou TXT com detecção automática de encoding.
+
         Returns:
             Tuple: (sucesso, mensagem, dataframe)
         """
         try:
             if file_path.endswith('.csv'):
-                # Tenta diferentes encodings
-                for encoding in ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']:
-                    try:
-                        df = pd.read_csv(file_path, encoding=encoding)
-                        break
-                    except:
-                        continue
-                else:
-                    return False, "Erro ao decodificar CSV", None
-            
+                # Detecta encoding automaticamente
+                encoding = detect_encoding(file_path)
+                df = pd.read_csv(file_path, encoding=encoding)
+
             elif file_path.endswith(('.xlsx', '.xls')):
                 df = pd.read_excel(file_path)
-            
+
             elif file_path.endswith('.txt'):
-                # Detecta separador automaticamente
-                with open(file_path, 'r', encoding='utf-8') as f:
+                # Detecta encoding e separador
+                encoding = detect_encoding(file_path)
+                with open(file_path, 'r', encoding=encoding) as f:
                     first_line = f.readline()
                     separator = self._detect_separator(first_line)
-                df = pd.read_csv(file_path, sep=separator, encoding='utf-8')
-            
+                df = pd.read_csv(file_path, sep=separator, encoding=encoding)
+
             else:
                 return False, "Formato não suportado. Use CSV, Excel ou TXT", None
-            
+
             self.current_data = df
             self.current_filename = file_path.split('/')[-1]
-            
+
             msg = f"✅ Arquivo carregado: {len(df)} linhas, {len(df.columns)} colunas"
             return True, msg, df
         

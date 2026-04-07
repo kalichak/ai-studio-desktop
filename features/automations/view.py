@@ -2,6 +2,7 @@
 import flet as ft
 import asyncio
 from features.automations.service import AutomationsService
+from utils.file_picker import select_file
 
 class AutomationsView:
     """Central de Automações - IA + Scripts externos."""
@@ -93,7 +94,7 @@ class AutomationsView:
                 ], spacing=10)
             ]),
             padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_800),
+            border=ft.Border.all(1, ft.Colors.GREY_800),
             border_radius=10
         )
     
@@ -104,7 +105,7 @@ class AutomationsView:
                 ft.Text("📋 Automações Disponíveis", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=self.automations_list,
-                    border=ft.border.all(1, ft.Colors.GREY_800),
+                    border=ft.Border.all(1, ft.Colors.GREY_800),
                     border_radius=5,
                     padding=10,
                     expand=True
@@ -124,7 +125,7 @@ class AutomationsView:
                 ft.Text("📤 Resultado", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=ft.Column([self.result_output], scroll=ft.ScrollMode.AUTO),
-                    border=ft.border.all(1, ft.Colors.GREY_800),
+                    border=ft.Border.all(1, ft.Colors.GREY_800),
                     border_radius=5,
                     padding=10,
                     expand=True
@@ -246,51 +247,65 @@ class AutomationsView:
     
     def _show_add_script_dialog(self, e):
         """Mostra dialog para adicionar script."""
-        name_field = ft.TextField(label="Nome do Script/App", width=400)
-        desc_field = ft.TextField(label="Descrição", width=400)
+        self._show_script_dialog()
+
+    def _show_script_dialog(self):
+        """Dialog para adicionar script/app externo."""
+        name_field = ft.TextField(label="Nome do Script/App")
+        desc_field = ft.TextField(label="Descrição")
         path_field = ft.TextField(
             label="Caminho do executável",
-            hint_text="/caminho/para/script.py ou script.exe",
-            width=400
+            hint_text="Clique em 'Selecionar' ou digite o caminho"
         )
-        
-        def add_script(e):
-            if not name_field.value or not path_field.value:
-                self._show_error("Preencha nome e caminho")
-                return
-            
-            self.service.register_external_script(
-                name_field.value,
-                path_field.value,
-                desc_field.value
-            )
-            
-            dlg.open = False
-            self.page.update()
-            self._load_automations()
-            self._show_success(f"✅ Script '{name_field.value}' adicionado")
+
+        def select_path(_):
+            """Seleciona arquivo usando file picker nativo."""
+            file_path = select_file("Selecionar Script/Executável")
+            if file_path:
+                path_field.value = file_path
+                path_field.update()
 
         dlg = ft.AlertDialog(
             title=ft.Text("Adicionar Script/App"),
             content=ft.Column([
                 name_field,
                 desc_field,
-                path_field
-            ], tight=True, spacing=15),
+                ft.Row([
+                    path_field,
+                    ft.IconButton(ft.Icons.FOLDER, on_click=select_path, tooltip="Selecionar arquivo")
+                ]),
+            ], scroll=True),
             actions=[
-                ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
-                ft.TextButton("Adicionar", on_click=add_script)
+                ft.TextButton("Cancelar", on_click=lambda _: self._close_add_script_dialog(dlg)),
+                ft.TextButton("Adicionar", on_click=lambda _: self._add_script(name_field, desc_field, path_field, dlg))
             ]
         )
-        
+
         self.page.dialog = dlg
         dlg.open = True
         self.page.update()
-    
-    def _on_script_selected(self, e):
-        """Callback de seleção de script - não utilizado."""
-        pass
-    
+
+    def _close_add_script_dialog(self, dlg):
+        """Fecha dialog de adicionar script."""
+        dlg.open = False
+        self.page.update()
+
+    def _add_script(self, name_field, desc_field, path_field, dlg):
+        """Adiciona o script."""
+        name = name_field.value.strip()
+        path = path_field.value.strip()
+        desc = desc_field.value.strip()
+
+        if not name or not path:
+            self._show_error("Preencha nome e caminho")
+            return
+
+        self.service.register_external_script(name, path, desc)
+        dlg.open = False
+        self.page.update()
+        self._load_automations()
+        self._show_success(f"✅ Script '{name}' adicionado")
+
     def _show_manage_scripts(self, e):
         """Mostra dialog de gerenciamento."""
         scripts = [s for s in self.service.external_scripts]

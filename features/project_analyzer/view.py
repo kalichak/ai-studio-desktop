@@ -3,6 +3,7 @@ import flet as ft
 import asyncio
 from features.project_analyzer.service import ProjectAnalyzerService
 from shared.components import create_result_container
+from utils.file_picker import select_folder
 
 class ProjectAnalyzerView:
     """View de análise de projeto - Versão à prova de travamento com Exportação."""
@@ -98,51 +99,32 @@ class ProjectAnalyzerView:
     # --- Lógica de Arquivos ---
 
     def _select_folder(self, e):
-        """Permite inserir caminho da pasta manualmente."""
-        dlg = ft.AlertDialog(
-            title=ft.Text("Selecionar Pasta"),
-            content=ft.Column([
-                ft.Text("Digite o caminho da pasta:", size=14),
-                ft.TextField(
-                    label="Caminho da pasta",
-                    hint_text="Ex: C:\\Users\\seu_usuario\\Documentos"
-                )
-            ]),
-            actions=[
-                ft.TextButton("Cancelar", on_click=lambda _: setattr(dlg, 'open', False) or self.page.update()),
-                ft.TextButton("OK", on_click=lambda _: self._set_folder_path(dlg.content.controls[1].value) or setattr(dlg, 'open', False) or self.page.update())
-            ]
-        )
-        self.page.dialog = dlg
-        dlg.open = True
-        self.page.update()
+        """Abre seletor nativo de pasta do Windows."""
+        try:
+            folder_path = select_folder("Selecionar Pasta do Projeto")
+            if folder_path:
+                self._set_folder_path(folder_path)
+                print(f"✅ Pasta selecionada: {folder_path}")
+            else:
+                print("ℹ️ Nenhuma pasta selecionada")
+        except Exception as ex:
+            print(f"❌ Erro: {ex}")
+            import traceback
+            traceback.print_exc()
 
     def _set_folder_path(self, path: str):
         """Define o caminho da pasta."""
-        if path:
-            self.folder_path.value = path
-            self.folder_path.update()
-
-    def _on_folder_selected(self, e):
-        """Callback de seleção de pasta."""
-        if e.path:
-            self.folder_path.value = e.path
-            self.folder_path.update()
-
-    def _on_save_file(self, e):
-        """Salva o conteúdo do markdown em um arquivo."""
-        if e.path:
-            try:
-                with open(e.path, 'w', encoding='utf-8') as f:
-                    f.write(self.project_result.value)
-                self._show_success(f"Arquivo salvo com sucesso em: {e.path}")
-            except Exception as ex:
-                self._show_error(f"Erro ao salvar arquivo: {ex}")
+        try:
+            if path:
+                self.folder_path.value = path
+                self.folder_path.update()
+        except Exception as ex:
+            print(f"❌ Erro em _set_folder_path: {ex}")
 
     def _copy_to_clipboard(self, e):
         """Copia todo o conteúdo para o clipboard."""
         if self.project_result.value:
-            self.page.set_clipboard(self.project_result.value)
+            self.page.clipboard.set(self.project_result.value)
             self._show_success("📋 Conteúdo copiado para a área de transferência!")
 
     # --- Lógica de Análise ---

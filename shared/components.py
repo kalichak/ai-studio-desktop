@@ -38,7 +38,7 @@ def create_section_card(title: str, content: ft.Control, icon: str = None) -> ft
             content
         ]),
         padding=20,
-        border=ft.border.all(1, ft.Colors.GREY_800),
+        border=ft.Border.all(1, ft.Colors.GREY_800),
         border_radius=10
     )
 
@@ -47,7 +47,7 @@ def create_result_container(content: ft.Control) -> ft.Container:
     return ft.Container(
         content=ft.Column([content], scroll=ft.ScrollMode.ALWAYS),
         expand=False,
-        border=ft.border.all(1, ft.Colors.GREY_800),
+        border=ft.Border.all(1, ft.Colors.GREY_800),
         border_radius=5,
         padding=10
     )

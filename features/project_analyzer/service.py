@@ -53,7 +53,7 @@ Forneça:
 1. **Objetivo do Projeto** (2-3 linhas)
 2. **3 Pontos Fortes** da arquitetura/código
 3. **3 Riscos ou Bugs Potenciais** a corrigir
-4. **Recomendações** de melhoria
+4. **Recomendações** de melhoria (foque principalmente em possiveis bugs ou problemas de manutenção)
 5. **README.md do projeto** sugerido
 
 Código do projeto:

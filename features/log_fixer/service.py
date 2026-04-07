@@ -40,5 +40,7 @@ Log de erro:
 {log_text}
 ```
 
-Seja direto e objetivo. Se houver código, forneça-o completo e corrigido.
+Seja direto e objetivo. Se houver código, forneça-o completo e corrigido
+Não cite sua profissão e de preferencia seja direto e pontual
+Questione e incentive ao usuario a ser mais detalhista.
 """
