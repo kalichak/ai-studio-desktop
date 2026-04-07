@@ -172,56 +172,46 @@ class GeminiClient:
             self._current_task = asyncio.current_task()
         except RuntimeError: pass
 
-        max_retries = 3
-        current_try = 0
+        try:
+            await self.rate_limiter.acquire()
+            self.tracker.log_request()
 
-        while current_try <= max_retries:
-            try:
-                await self.rate_limiter.acquire()
-                self.tracker.log_request()
+            # Gera conteúdo de forma síncrona
+            response = self.client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={"safety_settings": getattr(settings, "SAFETY_SETTINGS", {})}
+            )
 
-                # Gera conteúdo de forma síncrona e faz streaming linha por linha
-                response = self.client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config={"safety_settings": getattr(settings, "SAFETY_SETTINGS", {})}
-                )
+            # Retorna o texto completo em chunks (simula streaming)
+            if hasattr(response, 'text') and response.text:
+                text = response.text
+                # Envia em chunks pequenos para simular streaming
+                chunk_size = 50
+                for i in range(0, len(text), chunk_size):
+                    chunk = text[i:i+chunk_size]
+                    yield chunk
+                    await asyncio.sleep(0.01)  # Pequeno delay para feedback visual
 
-                # Retorna o texto completo em chunks (simula streaming)
-                if hasattr(response, 'text') and response.text:
-                    text = response.text
-                    # Envia em chunks pequenos para simular streaming
-                    chunk_size = 50
-                    for i in range(0, len(text), chunk_size):
-                        chunk = text[i:i+chunk_size]
-                        yield chunk
-                        await asyncio.sleep(0.01)  # Pequeno delay para feedback visual
+            # Log de tokens se disponível
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                try:
+                    self.tracker.log_tokens(
+                        response.usage_metadata.prompt_token_count,
+                        response.usage_metadata.candidates_token_count
+                    )
+                except: pass
 
-                # Log de tokens se disponível
-                if hasattr(response, 'usage_metadata') and response.usage_metadata:
-                    try:
-                        self.tracker.log_tokens(
-                            response.usage_metadata.prompt_token_count,
-                            response.usage_metadata.candidates_token_count
-                        )
-                    except: pass
+        except asyncio.CancelledError:
+            yield "Cancelado."
+        except Exception as e:
+            self.tracker.log_error()
+            error_msg = str(e).lower()
 
-                return
-
-            except asyncio.CancelledError:
-                yield "Cancelado."
-                return
-            except Exception as e:
-                self.tracker.log_error()
-                error_msg = str(e).lower()
-                if "429" in error_msg or "resource" in error_msg:
-                    current_try += 1
-                    if current_try <= max_retries:
-                        await asyncio.sleep(2 ** current_try)
-                        yield f"\n⏳ Retry {current_try}...\n"
-                        continue
-                yield f"Erro: {str(e)}"
-                return
+            if "429" in error_msg or "quota" in error_msg or "resource_exhausted" in error_msg:
+                yield f"⚠️ Quota excedida ou Rate limit atingido.\n\nTente novamente mais tarde ou upgrade sua conta.\n\nErro: {str(e)[:200]}"
+            else:
+                yield f"❌ Erro: {str(e)[:300]}"
 
     def cancel_current_operation(self):
         if self._current_task and not self._current_task.done():
